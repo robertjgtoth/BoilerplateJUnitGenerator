@@ -1,8 +1,6 @@
 package com.rtoth.boilerplate;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.intellij.openapi.application.ApplicationManager;
@@ -16,7 +14,6 @@ import com.intellij.psi.PsiDeclarationStatement;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementFactory;
-import com.intellij.psi.PsiExpression;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiLocalVariable;
@@ -25,11 +22,7 @@ import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiParameterList;
 import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiType;
-import com.intellij.psi.codeStyle.CodeStyleManager;
-import com.intellij.psi.impl.source.PsiClassImpl;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.psi.stubsHierarchy.impl.PsiHierachyConnector;
-import com.intellij.util.concurrency.FutureResult;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -37,8 +30,6 @@ import java.util.Arrays;
 import java.util.EmptyStackException;
 import java.util.List;
 import java.util.Stack;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 /**
  * Created by rtoth on 10/23/2016.
@@ -223,7 +214,8 @@ public class BoilerplateJUnitGenerator
     /**
      * All methods are assumed to be non-private constructors that have at least 1 parameter
      */
-    private List<PsiElement> generateTestCases(@NotNull ImmutableList<PsiMethod> methodsToTest) throws TestGenerationException
+    private List<PsiElement> generateTestCases(@NotNull ImmutableList<PsiMethod> methodsToTest)
+        throws TestGenerationException
     {
         Preconditions.checkNotNull(methodsToTest, "methodsToTest cannot be null.");
 
@@ -343,7 +335,7 @@ public class BoilerplateJUnitGenerator
         }
     }
 
-    private void addElements(PsiElement root, List<PsiElement> toAdd, PsiElement after)
+    private void addElements(@NotNull PsiElement root, @NotNull List<PsiElement> toAdd, @NotNull PsiElement after)
     {
         WriteCommandAction.runWriteCommandAction(
             project,

@@ -1,16 +1,18 @@
 package com.rtoth.boilerplate;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Created by rtoth on 10/23/2016.
  */
 public class TestGenerationException extends Exception
 {
-    public TestGenerationException(String message)
+    public TestGenerationException(@NotNull String message)
     {
         super(message);
     }
 
-    public TestGenerationException(String message, Throwable cause)
+    public TestGenerationException(@NotNull String message, @NotNull Throwable cause)
     {
         super(message, cause);
     }
