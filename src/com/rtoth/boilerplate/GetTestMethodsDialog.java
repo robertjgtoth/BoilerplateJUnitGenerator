@@ -1,3 +1,24 @@
+/**
+ * Copyright (c) 2016 Robert Toth
+ * <p>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * <p>
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * <p>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.rtoth.boilerplate;
 
 import com.google.common.base.Preconditions;
@@ -36,7 +57,7 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
 /**
- * Created by rtoth on 10/23/2016.
+ * FIXME: docs
  */
 public class GetTestMethodsDialog extends DialogWrapper
 {
@@ -218,15 +239,6 @@ public class GetTestMethodsDialog extends DialogWrapper
         return null;
     }
 
-    public ImmutableList<PsiMethod> getSelectedMethods()
-    {
-        ImmutableList.Builder<PsiMethod> builder = ImmutableList.builder();
-        availableMethods.entrySet().stream().filter(entry -> entry.getKey().isSelected()).forEach(entry ->
-            builder.add(entry.getValue()));
-
-        return builder.build();
-    }
-
     // TODO: Use this method instead of the one above to generate tests!!
     public ImmutableMap<PsiMethod, ImmutableList<ParameterRule>> getSelectedMethodRules()
     {
@@ -252,12 +264,12 @@ public class GetTestMethodsDialog extends DialogWrapper
             }
             else if (parameter.getType().getCanonicalText().equals("java.lang.String"))
             {
-                rulesBuilder.add(new StringParameterRule(parameter.getName()));
+                rulesBuilder.add(new StringParameterRule(parameter.getType(), parameter.getName()));
             }
             else
             {
                 // TODO: What if it's an array?
-                rulesBuilder.add(new ObjectParameterRule(parameter.getType().getPresentableText(), parameter.getName()));
+                rulesBuilder.add(new ObjectParameterRule(parameter.getType(), parameter.getName()));
             }
         }
 

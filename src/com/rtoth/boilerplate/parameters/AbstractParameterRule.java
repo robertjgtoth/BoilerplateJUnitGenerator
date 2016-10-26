@@ -19,22 +19,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.rtoth.boilerplate;
+package com.rtoth.boilerplate.parameters;
+
+import com.google.common.base.Preconditions;
+import com.intellij.psi.PsiType;
 
 import org.jetbrains.annotations.NotNull;
 
 /**
  * FIXME: docs
  */
-public class TestGenerationException extends Exception
+public abstract class AbstractParameterRule implements ParameterRule
 {
-    public TestGenerationException(@NotNull String message)
+    private final PsiType type;
+
+    private final String name;
+
+    public AbstractParameterRule(@NotNull PsiType type, @NotNull String name)
     {
-        super(message);
+        this.type = Preconditions.checkNotNull(type, "type cannot be null.");
+        this.name = Preconditions.checkNotNull(name, "name cannot be null.");
+        Preconditions.checkArgument(name.length() >= 1, "name must be of length >= 1");
     }
 
-    public TestGenerationException(@NotNull String message, @NotNull Throwable cause)
+    @Override
+    public PsiType getType()
     {
-        super(message, cause);
+        return type;
+    }
+
+    @Override
+    public String getName()
+    {
+        return name;
+    }
+
+    protected String getCapitalizedName()
+    {
+        return name.substring(0, 1).toUpperCase() + name.substring(1);
     }
 }

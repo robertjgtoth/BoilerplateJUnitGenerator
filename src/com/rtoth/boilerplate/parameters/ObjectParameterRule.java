@@ -1,4 +1,29 @@
+/**
+ * Copyright (c) 2016 Robert Toth
+ * <p>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * <p>
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * <p>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.rtoth.boilerplate.parameters;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.intellij.psi.PsiType;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -11,16 +36,17 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 /**
- * Created by rtoth on 10/24/2016.
+ * FIXME: docs
  */
-public class ObjectParameterRule implements ParameterRule
+public class ObjectParameterRule extends AbstractParameterRule
 {
+    protected final JPanel uiComponent;
     private final JCheckBox disallowNull = new JCheckBox("Disallow null");
 
-    protected final JPanel uiComponent;
-
-    public ObjectParameterRule(@NotNull String type, @NotNull String name)
+    public ObjectParameterRule(@NotNull PsiType type, @NotNull String name)
     {
+        super(type, name);
+
         // TODO: This layout sucks... fix this.
         this.uiComponent = new JPanel(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
@@ -29,7 +55,7 @@ public class ObjectParameterRule implements ParameterRule
         constraints.gridx = 0;
         constraints.gridy = 0;
         constraints.weightx = 0.5;
-        uiComponent.add(new JLabel(type + " " + name + ": "), constraints);
+        uiComponent.add(new JLabel(type.getPresentableText() + " " + name + ": "), constraints);
         constraints.anchor = GridBagConstraints.CENTER;
         constraints.gridwidth = 2;
         constraints.gridx = 2;
@@ -38,11 +64,7 @@ public class ObjectParameterRule implements ParameterRule
         uiComponent.add(disallowNull, constraints);
     }
 
-    public boolean disallowNull()
-    {
-        return disallowNull.isSelected();
-    }
-
+    @Override
     public boolean isValid()
     {
         return true;
@@ -52,5 +74,33 @@ public class ObjectParameterRule implements ParameterRule
     public JComponent getUiComponent()
     {
         return uiComponent;
+    }
+
+    @Override
+    public ImmutableList<ParameterInitializer> getValidInitializers()
+    {
+        // TODO: Do something else with final classes
+        return ImmutableList.of(
+            new ParameterInitializer(
+                "valid" + getCapitalizedName(),
+                "mock(" + getType().getPresentableText() + ".class)"
+            )
+        );
+    }
+
+    @Override
+    public ImmutableMap<ParameterInitializer, Class<? extends Exception>> getInvalidInitializers()
+    {
+        if (disallowNull.isSelected())
+        {
+            return ImmutableMap.of(
+                new ParameterInitializer(
+                    "null" + getCapitalizedName(),
+                    "null"
+                ),
+                NullPointerException.class
+            );
+        }
+        return ImmutableMap.of();
     }
 }

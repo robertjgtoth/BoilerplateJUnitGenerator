@@ -19,22 +19,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.rtoth.boilerplate;
+package com.rtoth.boilerplate.parameters;
+
+import com.google.common.base.Preconditions;
 
 import org.jetbrains.annotations.NotNull;
 
 /**
  * FIXME: docs
  */
-public class TestGenerationException extends Exception
+public class ParameterInitializer
 {
-    public TestGenerationException(@NotNull String message)
+    private final String description;
+
+    private final String initializerText;
+
+    public ParameterInitializer(@NotNull String description, @NotNull String initializerText)
     {
-        super(message);
+        this.description = Preconditions.checkNotNull(description, "description cannot be null.");
+        this.initializerText = Preconditions.checkNotNull(initializerText, "initializerText cannot be null.");
     }
 
-    public TestGenerationException(@NotNull String message, @NotNull Throwable cause)
+    public String getDescription()
     {
-        super(message, cause);
+        return description;
+    }
+
+    public String getInitializerText()
+    {
+        return initializerText;
     }
 }
