@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,14 +25,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiCodeBlock;
 import com.intellij.psi.PsiDeclarationStatement;
-import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiFile;
@@ -52,9 +49,9 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Generates JUnit test cases for the provided Java file based on input from the user.
+ * Generates JUnit test cases for the provided Java class based on input from the user.
  */
-public class TestCaseGenerator
+class TestCaseGenerator
 {
     /**
      * {@link Project} for which test cases will be generated.
@@ -62,131 +59,93 @@ public class TestCaseGenerator
     private final Project project;
 
     /**
-     * Source {@link PsiJavaFile} for which test cases will be generated.
-     */
-    private final PsiJavaFile sourceFile;
-
-    /**
      * Used to create new {@link PsiElement}s (e.g. test methods).
      */
     private final PsiElementFactory psiElementFactory;
 
     /**
-     * Create a new {@link TestCaseGenerator} for the provided {@link Project} and {@link PsiFile}.
+     * Create a new {@link TestCaseGenerator} for the provided {@link Project}.
      *
      * @param project {@link Project} for which test cases will be generated. Cannot be {@code null}.
-     * @param sourceFile {@link PsiJavaFile} for which to generated test cases. Cannot be {@code null}.
+     *
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public TestCaseGenerator(@NotNull Project project, @NotNull PsiJavaFile sourceFile)
+    TestCaseGenerator(@NotNull Project project)
     {
         this.project = Preconditions.checkNotNull(project, "project cannot be null.");
-        this.sourceFile = Preconditions.checkNotNull(sourceFile, "sourceFile cannot be null.");
 
         this.psiElementFactory = JavaPsiFacade.getElementFactory(project);
     }
 
     /**
-     * FIXME: docs
+     * Create test cases in the provided {@code testClass} based on the provided {@code methodRules}.
+     *
+     * @param testClass {@link PsiClass} to which test cases should be added. Cannot be {@code null} and must be
+     *                  contained in a valid {@link PsiJavaFile}.
+     * @param methodRules Mapping of {@link PsiMethod}s to test in the source class to {@link ParameterRule}s which
+     *                    indicate how each of the method's parameters should be tested. Cannot be {@code null}, and
+     *                    the list of {@link ParameterRule}s for each method is expected to contain exactly the number
+     *                    of parameters defined for the method in the correct order. Providing the parameters out of
+     *                    order will result in test code which does not compile.
+     *
+     * @throws IllegalArgumentException if any method's list of {@link ParameterRule}s does not contain the same number
+     *                                  of rules as there are parameters in the method.
+     * @throws NullPointerException if any parameter is {@code null}.
+     * @throws TestGenerationException If there is a problem creating test cases.
      */
-    public void createTestCases() throws TestGenerationException
-    {
-        Optional<PsiDirectory> testDirectory = PsiUtility.findOrCreateTestDirectory(sourceFile);
-        if (testDirectory.isPresent())
-        {
-            PsiClass[] classes = sourceFile.getClasses();
-            if (classes.length != 1)
-            {
-                throw new TestGenerationException("File must contain only 1 class!");
-            }
-            else
-            {
-                // TODO: If we have to create the directory or file, it just exits without displaying the dialog...
-                PsiClass sourceClass = classes[0];
-                PsiClass testClass = findOrCreateTestClass(testDirectory.get(), sourceClass);
-                if (testClass != null)
-                {
-                    GetTestMethodsDialog dialog = new GetTestMethodsDialog(project, sourceClass);
-                    if (dialog.showAndGet())
-                    {
-                        PsiJavaFile testFile = (PsiJavaFile) testClass.getContainingFile();
-                        // TODO: These are all getting appending without any newline breaks
-                        addElements(testFile, getImports(), testFile.getPackageStatement());
-                        ImmutableMap<PsiMethod, ImmutableList<ParameterRule>> methodRules =
-                            dialog.getSelectedMethodRules();
-                        addElements(testClass, generateTestCases(methodRules), null);
-                    }
-                }
-                else
-                {
-                    throw new TestGenerationException("Error generating test class for " + sourceClass.getName());
-                }
-            }
-        }
-        else
-        {
-            throw new TestGenerationException("Can only generate test cases for source files.");
-        }
-    }
-
-    private PsiClass findOrCreateTestClass(final @NotNull PsiDirectory testDirectory, @NotNull PsiClass sourceClass)
+    void createTestCases(@NotNull PsiClass testClass,
+                         @NotNull ImmutableMap<PsiMethod, ImmutableList<ParameterRule>> methodRules)
         throws TestGenerationException
     {
-        Preconditions.checkNotNull(testDirectory, "testDirectory cannot be null.");
-        Preconditions.checkNotNull(sourceClass, "sourceClass cannot be null.");
-
-        final String testClassName = sourceClass.getName() + "Test";
-        PsiFile testFile = testDirectory.findFile(testClassName + ".java");
-        PsiClass testClass = null;
-        if (testFile != null)
+        Preconditions.checkNotNull(testClass, "testClass cannot be null.");
+        Preconditions.checkNotNull(methodRules, "methodRules cannot be null.");
+        for (Map.Entry<PsiMethod, ImmutableList<ParameterRule>> entry : methodRules.entrySet())
         {
-            if (testFile instanceof PsiJavaFile)
-            {
-                PsiClass[] classes = ((PsiJavaFile) testFile).getClasses();
-                if (classes.length != 1)
-                {
-                    throw new TestGenerationException(testFile.getName() + " exists but contains more than 1 class.");
-                }
-                else
-                {
-                    testClass = classes[0];
-                }
-            }
-            else
-            {
-                throw new TestGenerationException(testFile.getName() + " exists but is not a valid java file.");
-            }
-        }
-        else
-        {
-            testClass = WriteCommandAction.runWriteCommandAction(
-                project,
-                (Computable<PsiClass>) () ->
-                {
-                    PsiClass newClass = psiElementFactory.createClass(testClassName);
-                    testDirectory.add(newClass);
-                    return newClass;
-                }
-            );
+            Preconditions.checkArgument(
+                entry.getKey().getParameterList().getParametersCount() ==
+                entry.getValue().size(), "Invalid map of method rules. At least one method's list of parameter rules " +
+                    "does not match the method signature for that method.");
         }
 
-        return testClass;
+        PsiJavaFile testFile = (PsiJavaFile) testClass.getContainingFile();
+        // TODO: These are all getting appended without any newline breaks
+        PsiUtility.addElements(testFile, getImports(), testFile.getPackageStatement());
+        // TODO: Only define variables once at the class level instead of in each and every method.
+        PsiUtility.addElements(testClass, generateTestCases(methodRules), null);
     }
 
-    private List<PsiElement> generateTestCases(
+    /**
+     * Generate test cases based on the provided {@code methodRules}.
+     * <p>
+     * Note: This method currently only supports constructors. Providing non-constructor methods here will result in
+     *       undefined behavior.
+     *
+     * TODO: Support non-constructor methods.
+     *
+     * @param methodRules Mapping of {@link PsiMethod}s to test in the source class to {@link ParameterRule}s which
+     *                    indicate how each of the method's parameters should be tested. Cannot be {@code null}, and
+     *                    the list of {@link ParameterRule}s for each method is assumed to contain exactly the number
+     *                    of parameters defined for the method in the correct order. Providing the parameters out of
+     *                    order will result in test code which does not compile.
+     * @return A list of {@link PsiMethod}s which define the generated test cases. Never {@code null}, but may be empty.
+     *
+     * @throws NullPointerException if {@code methodRules} is {@code null}.
+     * @throws TestGenerationException If there is a problem creating test cases.
+     */
+    @NotNull
+    private ImmutableList<PsiElement> generateTestCases(
         @NotNull ImmutableMap<PsiMethod, ImmutableList<ParameterRule>> methodRules)
         throws TestGenerationException
     {
         Preconditions.checkNotNull(methodRules, "methodRules cannot be null.");
 
-        List<PsiElement> testCases = Lists.newArrayList();
+        ImmutableList.Builder<PsiElement> testCases = ImmutableList.builder();
 
         for (Map.Entry<PsiMethod, ImmutableList<ParameterRule>> methodEntry : methodRules.entrySet())
         {
             PsiMethod method = methodEntry.getKey();
             ImmutableList<ParameterRule> parameterRules = methodEntry.getValue();
 
-            // TODO: Update this to handle non-constructor methods
             String methodNameBase = "constructor";
 
             for (ParameterRule ruleToTest : parameterRules)
@@ -203,7 +162,7 @@ public class TestCaseGenerator
                         PsiType.VOID
                     );
                     // TODO: Fix how this annotation is formatted (it's not putting a newline before the start
-                    //       of the method
+                    //       of the method)
                     testCase.addBefore(psiElementFactory.createAnnotationFromText(
                         "@Test(expected = " + expectedException.getSimpleName() + ".class)", null),
                         testCase.getModifierList());
@@ -216,6 +175,8 @@ public class TestCaseGenerator
                         {
                             if (ruleToTest.equals(rule))
                             {
+                                // TODO: For parameters which are using null, just pass null directly to the method
+                                //       invocation instead of creating a new variable.
                                 PsiDeclarationStatement declarationStatement =
                                     psiElementFactory.createVariableDeclarationStatement(ruleToTest.getName(),
                                         ruleToTest.getType(),
@@ -265,12 +226,21 @@ public class TestCaseGenerator
                 }
             }
         }
-        return testCases;
+        return testCases.build();
     }
 
     /**
-     * TODO: Only add imports that aren't already present
+     * Get the list of imports needed for our generated test cases.
+     * <p>
+     * This is currently just a static list containing {@code org.mockito.Mockito.mock} and {@code org.junit.Test}.
+     *
+     * TODO: Only add imports that aren't already present, and only add the ones that are needed.
+     *
+     * @return An {@link ImmutableList} containing the imports needed to support testing. Never {@code null}.
+     *
+     * @throws TestGenerationException if any required module is not added to the project's classpath.
      */
+    @NotNull
     private ImmutableList<PsiElement> getImports() throws TestGenerationException
     {
         ImmutableList.Builder<PsiElement> imports = ImmutableList.builder();
@@ -302,26 +272,5 @@ public class TestCaseGenerator
         }
 
         return imports.build();
-    }
-
-    private void addElements(@NotNull PsiElement root, @NotNull List<PsiElement> toAdd, PsiElement after)
-    {
-        WriteCommandAction.runWriteCommandAction(
-            project,
-            () ->
-            {
-                for (PsiElement element : toAdd)
-                {
-                    if (after != null)
-                    {
-                        root.addAfter(element, after);
-                    }
-                    else
-                    {
-                        root.add(element);
-                    }
-                }
-            }
-        );
     }
 }

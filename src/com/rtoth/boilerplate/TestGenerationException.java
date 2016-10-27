@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,20 +21,40 @@
  */
 package com.rtoth.boilerplate;
 
+import com.google.common.base.Preconditions;
+
 import org.jetbrains.annotations.NotNull;
 
 /**
- * FIXME: docs
+ * Represents an error during test generation.
  */
-public class TestGenerationException extends Exception
+class TestGenerationException extends Exception
 {
-    public TestGenerationException(@NotNull String message)
+    /**
+     * Create a new {@link TestGenerationException} using the provided message.
+     *
+     * @param message Message describing the error. Cannot be {@code null}.
+     *
+     * @throws NullPointerException if {@code message} is {@code null}.
+     */
+    TestGenerationException(@NotNull String message)
     {
-        super(message);
+        super(Preconditions.checkNotNull(message, "message cannot be null."));
     }
 
+    /**
+     * Create a new {@link TestGenerationException} using the provided message and cause.
+     *
+     * @param message Message describing the error. Cannot be {@code null}.
+     * @param cause Original cause of the error. Cannot be {@code null}.
+     *
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
     public TestGenerationException(@NotNull String message, @NotNull Throwable cause)
     {
-        super(message, cause);
+        super(
+            Preconditions.checkNotNull(message, "message cannot be null."),
+            Preconditions.checkNotNull(cause, "cause cannot be null.")
+        );
     }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,34 +27,54 @@ import com.intellij.psi.PsiType;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * FIXME: docs
+ * Contains functionality common to all {@link ParameterRule}s.
  */
-public abstract class AbstractParameterRule implements ParameterRule
+abstract class AbstractParameterRule implements ParameterRule
 {
+    /** {@link PsiType} of the parameter for which this rule applies. */
     private final PsiType type;
 
+    /** Name of the parameter for which this rule applies. */
     private final String name;
 
-    public AbstractParameterRule(@NotNull PsiType type, @NotNull String name)
+    /**
+     * Create a new {@link AbstractParameterRule}.
+     *
+     * @param type {@link PsiType} of the parameter for which this rule applies. Cannot be {@code null}.
+     * @param name Name of the parameter for which this rule applies. Cannot be {@code null} and must have a length of
+     *             at least 1.
+     *
+     * @throws IllegalArgumentException if {@code name}'s length is &lt; 1.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    AbstractParameterRule(@NotNull PsiType type, @NotNull String name)
     {
         this.type = Preconditions.checkNotNull(type, "type cannot be null.");
         this.name = Preconditions.checkNotNull(name, "name cannot be null.");
         Preconditions.checkArgument(name.length() >= 1, "name must be of length >= 1");
     }
 
+    @NotNull
     @Override
     public PsiType getType()
     {
         return type;
     }
 
+    @NotNull
     @Override
     public String getName()
     {
         return name;
     }
 
-    protected String getCapitalizedName()
+    /**
+     * Get a version of {@link #getName()} with the first letter capitalized.
+     *
+     * @return {@link #getName()} with the first letter capitalized. Never {@code null}.
+     */
+    @NotNull
+    String getCapitalizedName()
     {
         return name.substring(0, 1).toUpperCase() + name.substring(1);
     }

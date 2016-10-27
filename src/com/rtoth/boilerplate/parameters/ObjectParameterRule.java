@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,8 +21,10 @@
  */
 package com.rtoth.boilerplate.parameters;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiType;
 
 import org.jetbrains.annotations.NotNull;
@@ -36,16 +38,32 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 /**
- * FIXME: docs
+ * {@link ParameterRule} which can be used for any single, non-primitive {@link Object} or subclass.
  */
 public class ObjectParameterRule extends AbstractParameterRule
 {
-    protected final JPanel uiComponent;
+    /** UI component that can be used to configure this {@link ObjectParameterRule}. */
+    final JPanel uiComponent;
+
+    /** Check box containing whether null values should be allowed for this parameter. */
     private final JCheckBox disallowNull = new JCheckBox("Disallow null");
 
+    /**
+     * Create a new {@link AbstractParameterRule}.
+     *
+     * @param type {@link PsiType} of the parameter for which this rule applies. Cannot be {@code null} and must not
+     *             be a {@link PsiPrimitiveType}.
+     * @param name Name of the parameter for which this rule applies. Cannot be {@code null} and must have a length of
+     *             at least 1.
+     *
+     * @throws IllegalArgumentException if {@code type} is a {@link PsiPrimitiveType} or {@code name}'s length is
+     *         &lt; 1.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
     public ObjectParameterRule(@NotNull PsiType type, @NotNull String name)
     {
         super(type, name);
+        Preconditions.checkArgument(!(type instanceof PsiPrimitiveType), "type cannot be a primitive type.");
 
         // TODO: This layout sucks... fix this.
         this.uiComponent = new JPanel(new GridBagLayout());
@@ -70,12 +88,14 @@ public class ObjectParameterRule extends AbstractParameterRule
         return true;
     }
 
+    @NotNull
     @Override
     public JComponent getUiComponent()
     {
         return uiComponent;
     }
 
+    @NotNull
     @Override
     public ImmutableList<ParameterInitializer> getValidInitializers()
     {
@@ -88,6 +108,7 @@ public class ObjectParameterRule extends AbstractParameterRule
         );
     }
 
+    @NotNull
     @Override
     public ImmutableMap<ParameterInitializer, Class<? extends Exception>> getInvalidInitializers()
     {

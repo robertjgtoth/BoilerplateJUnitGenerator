@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,22 +25,67 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.intellij.psi.PsiType;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.swing.JComponent;
 
 /**
- * FIXME: docs
+ * Contains a configurable testing rule set for a single method parameter.
  */
 public interface ParameterRule
 {
+    /**
+     * Get whether the current configuration (made through the UI component) is valid.
+     *
+     * @return {@code true} if the current configuration is valid, {@code false} otherwise.
+     */
     boolean isValid();
 
+    /**
+     * Get the UI component that can be used to configure this {@link ParameterRule}.
+     *
+     * @return The UI component that can be used to configure this {@link ParameterRule}. Never {@code null}.
+     */
+    @NotNull
     JComponent getUiComponent();
 
+    /**
+     * Get the {@link PsiType} of the parameter for which this rule applies.
+     *
+     * @return The {@link PsiType} of the parameter for which this rule applies. Never {@code null}.
+     */
+    @NotNull
     PsiType getType();
 
+    /**
+     * Get the name of the parameter for which this rule applies.
+     *
+     * @return The name of the parameter for which this rule applies. Never {@code null}.
+     */
+    @NotNull
     String getName();
 
+    /**
+     * Get the list of {@link ParameterInitializer}s that can be used to initialize this parameter such that the
+     * resulting value is considered valid.
+     *
+     * @return An {@link ImmutableList} of {@link ParameterInitializer}s that can be used to initialize this parameter
+     *         such that the resulting value is considered valid. Never {@code null} and always contains at least 1
+     *         element.
+     */
+    @NotNull
     ImmutableList<ParameterInitializer> getValidInitializers();
 
+    /**
+     * Get a mapping of {@link ParameterInitializer}s that can be used to initialize this parameter such that the
+     * resulting value is considered invalid, to the {@link Exception}s expected to be thrown if the parameter is used
+     * in its invalid state.
+     *
+     * @return An {@link ImmutableMap} of {@link ParameterInitializer}s that can be used to initialize this parameter
+     *         such that the resulting value is considered invalid, to the {@link Exception}s expected to be thrown if
+     *         the parameter is used in its invalid state. Never {@code null}, but may be empty indicating that this
+     *         parameter is always valid.
+     */
+    @NotNull
     ImmutableMap<ParameterInitializer, Class<? extends Exception>> getInvalidInitializers();
 }

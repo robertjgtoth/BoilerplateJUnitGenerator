@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,8 +21,10 @@
  */
 package com.rtoth.boilerplate.parameters;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiType;
 
 import org.jetbrains.annotations.NotNull;
@@ -32,15 +34,34 @@ import java.awt.GridBagConstraints;
 import javax.swing.JCheckBox;
 
 /**
- * FIXME: docs
+ * {@link ParameterRule} which can be used for {@link String}s.
  */
 public class StringParameterRule extends ObjectParameterRule
 {
+    /** Canonical text for {@link String} {@link PsiType}. */
+    private static final String STRING_CANONICAL_TEXT = "java.lang.String";
+
+    /** Check box containing whether blank values should be allowed for this parameter. */
     private final JCheckBox disallowBlank = new JCheckBox("Disallow blank");
 
+    /**
+     * Create a new {@link AbstractParameterRule}.
+     *
+     * @param type {@link PsiType} of the parameter for which this rule applies. Cannot be {@code null} and must be
+     *             {@value #STRING_CANONICAL_TEXT}.
+     * @param name Name of the parameter for which this rule applies. Cannot be {@code null} and must have a length of
+     *             at least 1.
+     *
+     * @throws IllegalArgumentException if {@code type} is not {@value #STRING_CANONICAL_TEXT} or {@code name}'s
+     *         length is &lt; 1.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
     public StringParameterRule(@NotNull PsiType type, @NotNull String name)
     {
         super(type, name);
+        Preconditions.checkArgument(type.getCanonicalText().equals(STRING_CANONICAL_TEXT),
+            "type must be String.");
+
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.anchor = GridBagConstraints.CENTER;
         constraints.gridwidth = 2;
@@ -51,6 +72,7 @@ public class StringParameterRule extends ObjectParameterRule
         this.uiComponent.add(disallowBlank, constraints);
     }
 
+    @NotNull
     @Override
     public ImmutableList<ParameterInitializer> getValidInitializers()
     {
@@ -62,6 +84,7 @@ public class StringParameterRule extends ObjectParameterRule
         );
     }
 
+    @NotNull
     @Override
     public ImmutableMap<ParameterInitializer, Class<? extends Exception>> getInvalidInitializers()
     {

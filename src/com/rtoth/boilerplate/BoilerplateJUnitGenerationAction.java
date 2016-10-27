@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,8 +27,11 @@ import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
+
+import java.util.Optional;
 
 /**
  * Defines an {@link AnAction} which generates "boilerplate" JUnit test cases for
@@ -57,14 +60,44 @@ public class BoilerplateJUnitGenerationAction extends AnAction
             {
                 try
                 {
-                    TestCaseGenerator generator = new TestCaseGenerator(project, (PsiJavaFile) file);
-
-                    generator.createTestCases();
+                    PsiJavaFile sourceFile = (PsiJavaFile) file;
+                    Optional<PsiClass> optionalSourceClass = PsiUtility.getSingleClass(sourceFile);
+                    if (optionalSourceClass.isPresent())
+                    {
+                        PsiClass sourceClass = optionalSourceClass.get();
+                        // TODO: If we have to create the directory or file, it just exits without displaying the dialog...
+                        Optional<PsiClass> optionalTestClass = PsiUtility.findOrCreateTestClass(sourceClass);
+                        if (optionalTestClass.isPresent())
+                        {
+                            PsiClass testClass = optionalTestClass.get();
+                            GetTestMethodsDialog dialog = new GetTestMethodsDialog(sourceClass);
+                            if (dialog.showAndGet())
+                            {
+                                TestCaseGenerator generator = new TestCaseGenerator(project);
+                                generator.createTestCases(testClass, dialog.getSelectedMethodRules());
+                            }
+                        }
+                        else
+                        {
+                            // TODO: Probably not best to be throwing exceptions in here just to catch
+                            //       them below... log a message explicitly instead?
+                            throw new TestGenerationException("Error finding or generating test class for " +
+                                sourceClass.getName());
+                        }
+                    }
+                    else
+                    {
+                        // TODO: Probably not best to be throwing exceptions in here just to catch
+                        //       them below... log a message explicitly instead?
+                        throw new TestGenerationException("File does not contain exactly 1 java class.");
+                    }
                 }
-                catch (TestGenerationException tge)
+                catch (RuntimeException | TestGenerationException e)
                 {
-                    Messages.showMessageDialog(project, tge.getMessage(),
+                    e.printStackTrace();
+                    Messages.showMessageDialog(project, e.getMessage(),
                         "Warning", Messages.getWarningIcon());
+                    throw new RuntimeException(e);
                 }
             }
         }

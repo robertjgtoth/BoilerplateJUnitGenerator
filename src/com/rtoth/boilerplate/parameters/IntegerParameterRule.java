@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -37,14 +37,25 @@ import java.text.NumberFormat;
 import javax.swing.JFormattedTextField;
 
 /**
- * FIXME: docs
+ * {@link ParameterRule} which can be used for {@code int} values.
  */
 public class IntegerParameterRule extends NumericParameterRule
 {
+    /** Required {@link Format} for an integer in a text field. */
     private static final Format INTEGER_FORMAT = NumberFormat.getIntegerInstance();
 
+    /** Text field holding the current constraint value. */
     private final JFormattedTextField value = new JFormattedTextField(INTEGER_FORMAT);
 
+    /**
+     * Create a new {@link IntegerParameterRule}.
+     *
+     * @param name Name of the parameter for which this rule applies. Cannot be {@code null} and must have a length of
+     *             at least 1.
+     *
+     * @throws IllegalArgumentException if {@code name}'s length is &lt; 1.
+     * @throws NullPointerException if {@code name} is {@code null}.
+     */
     public IntegerParameterRule(@NotNull String name)
     {
         super(PsiType.INT, name);
@@ -58,6 +69,7 @@ public class IntegerParameterRule extends NumericParameterRule
         value.setMinimumSize(new Dimension(100, (int) value.getPreferredSize().getHeight()));
         this.uiComponent.add(value, constraints);
 
+        // TODO: This class should probably not be using the comboBox directly, but how to do this generically?
         numericConstraint.setSelectedItem(NumericConstraint.ANY);
         value.setEnabled(false);
         value.setEditable(false);
@@ -80,12 +92,14 @@ public class IntegerParameterRule extends NumericParameterRule
         });
     }
 
+    @Override
     public boolean isValid()
     {
         return super.isValid() &&
             (getConstraint().equals(NumericConstraint.ANY) || checkedGetValue() != null);
     }
 
+    @NotNull
     @Override
     public ImmutableList<ParameterInitializer> getValidInitializers()
     {
@@ -177,6 +191,7 @@ public class IntegerParameterRule extends NumericParameterRule
         return initializers.build();
     }
 
+    @NotNull
     @Override
     public ImmutableMap<ParameterInitializer, Class<? extends Exception>> getInvalidInitializers()
     {
@@ -277,23 +292,22 @@ public class IntegerParameterRule extends NumericParameterRule
         return initializers.build();
     }
 
+    /**
+     * Get the current user input constraint value.
+     *
+     * @return The current user input constraint value, or {@code null} if there is no input, or it is invalid.
+     */
     private Integer checkedGetValue()
     {
-        Integer value;
+        Integer result;
         try
         {
-            value = getValue();
+            result = Integer.parseInt(value.getText());
         }
         catch (NumberFormatException nfe)
         {
-            value = null;
+            result = null;
         }
-        return value;
-    }
-
-    public int getValue()
-    {
-        // This should never throw cuz of the formatter!
-        return Integer.parseInt(value.getText());
+        return result;
     }
 }

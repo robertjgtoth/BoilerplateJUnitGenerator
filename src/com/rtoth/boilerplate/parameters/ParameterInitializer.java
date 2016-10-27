@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,25 +26,52 @@ import com.google.common.base.Preconditions;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * FIXME: docs
+ * Encapsulates a parameter initializer.
  */
 public class ParameterInitializer
 {
+    /** Description of the initializer used for test case names. e.g. 'validObj' or 'negativeValue' */
     private final String description;
 
+    /** Text used as code for the initializer. */
     private final String initializerText;
 
-    public ParameterInitializer(@NotNull String description, @NotNull String initializerText)
+    /**
+     * Create a new {@link ParameterInitializer}.
+     *
+     * @param description Description of the initializer used for test case names, e.g. 'validObj' or 'negativeValue'.
+     *                    Cannot be {@code null}.
+     * @param initializerText Text used as code for a parameter initializer. This is expected to be only the RHS of a
+     *                        variable initialization statement without the semi-colon, e.g. 'mock(Object.class)' or
+     *                        '"test value"'. Cannot be {@code null}.
+     *
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    ParameterInitializer(@NotNull String description, @NotNull String initializerText)
     {
         this.description = Preconditions.checkNotNull(description, "description cannot be null.");
         this.initializerText = Preconditions.checkNotNull(initializerText, "initializerText cannot be null.");
     }
 
+    /**
+     * Get the description of the initializer used for test case names.
+     *
+     * @return Description of the initializer used for test case names, e.g. 'validObj' or 'negativeValue'. Never
+     *         {@code null}.
+     */
+    @NotNull
     public String getDescription()
     {
         return description;
     }
 
+    /**
+     * Get the text used as code for a parameter initializer.
+     *
+     * @return Text used as code for a parameter initializer. This returns only the RHS of a variable initialization
+     *         statement without the semi-colon, e.g. 'mock(Object.class)' or '"test value"'. Never {@code null}.
+     */
+    @NotNull
     public String getInitializerText()
     {
         return initializerText;

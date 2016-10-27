@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2016 Robert Toth
  * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,7 +24,6 @@ package com.rtoth.boilerplate;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.psi.PsiClass;
@@ -57,28 +56,43 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
 /**
- * FIXME: docs
+ * Dialog box which prompts the user for input on which methods to test and how to test them.
  */
-public class GetTestMethodsDialog extends DialogWrapper
+class GetTestMethodsDialog extends DialogWrapper
 {
+    /** Description for this dialog box. */
+    private static final String DIALOG_DESCRIPTION = "Select Methods to Test";
+
+    /** ID for the empty card display. */
     private static final String EMPTY_CARD_ID = "EMPTY_CARD";
 
+    /** Message to display when a method has no configurable parameters. */
     private static final JLabel NO_CONFIGURABLE_PARAMETERS =
         new JLabel("No configurable parameters right now.\nThe developers are working on this :)");
 
-    private final PsiClass sourceClass;
-
+    /** Methods available for the user to configure mapped by a check box indicating whether they have been selected. */
     private final ImmutableMap<JCheckBox, PsiMethod> availableMethods;
 
+    /** Configurable parameter rules for each of the {@code availableMethods}. */
     private final ImmutableMap<PsiMethod, ImmutableList<ParameterRule>> parameterRules;
 
+    /** ID of the currently selected card display. */
     private String selectedCardId = EMPTY_CARD_ID;
 
-    public GetTestMethodsDialog(@NotNull Project project, @NotNull PsiClass sourceClass)
+    /**
+     * Create a new {@link GetTestMethodsDialog}.
+     *
+     * @param sourceClass {@link PsiClass} for which this dialog is configuring test methods. Cannot be {@code null}.
+     *
+     * @throws NullPointerException if {@code sourceClass} is {@code null}.
+     */
+    GetTestMethodsDialog(@NotNull PsiClass sourceClass)
     {
-        super(project);
+        super(
+            Preconditions.checkNotNull(sourceClass, "sourceClass cannot be null.")
+                .getProject()
+        );
 
-        this.sourceClass = Preconditions.checkNotNull(sourceClass, "sourceClass cannot be null.");
         ImmutableMap.Builder<JCheckBox, PsiMethod> availableMethodsBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<PsiMethod, ImmutableList<ParameterRule>> parameterRulesBuilder =
             ImmutableMap.builder();
@@ -88,17 +102,17 @@ public class GetTestMethodsDialog extends DialogWrapper
             if (PsiUtil.getAccessLevel(method.getModifierList()) != PsiUtil.ACCESS_LEVEL_PRIVATE &&
                 method.isConstructor() && method.getParameterList().getParametersCount() > 0)
             {
-                JCheckBox checkBox = new JCheckBox(getMethodSignature(method));
+                JCheckBox checkBox = new JCheckBox(getPresentableMethodSignature(method));
                 checkBox.setSelected(false);
                 availableMethodsBuilder.put(checkBox, method);
-                parameterRulesBuilder.put(method, getParameterRules(method));
+                parameterRulesBuilder.put(method, buildDefaultParameterRules(method));
             }
         }
         this.availableMethods = availableMethodsBuilder.build();
         this.parameterRules = parameterRulesBuilder.build();
 
         init();
-        setTitle("Select non-private methods to test.");
+        setTitle(DIALOG_DESCRIPTION);
     }
 
     @Nullable
@@ -106,6 +120,7 @@ public class GetTestMethodsDialog extends DialogWrapper
     protected JComponent createCenterPanel()
     {
         // inf rows, 1 column
+        // TODO: Lately the cards are showing up squished..
         final JPanel methodSelection = new JPanel(new GridBagLayout());
         final JPanel parameterRuleCards = new JPanel(new CardLayout());
         parameterRuleCards.add(new JLabel("Select a method to configure."), EMPTY_CARD_ID);
@@ -114,7 +129,7 @@ public class GetTestMethodsDialog extends DialogWrapper
         for (Map.Entry<JCheckBox, PsiMethod> methodEntry : availableMethods.entrySet())
         {
             final PsiMethod method = methodEntry.getValue();
-            final String methodSignature = getMethodSignature(method);
+            final String methodSignature = getPresentableMethodSignature(method);
             final JCheckBox methodCheckBox = methodEntry.getKey();
             final JButton methodConfigureButton = new JButton("->");
             methodConfigureButton.setEnabled(false);
@@ -239,8 +254,20 @@ public class GetTestMethodsDialog extends DialogWrapper
         return null;
     }
 
-    // TODO: Use this method instead of the one above to generate tests!!
-    public ImmutableMap<PsiMethod, ImmutableList<ParameterRule>> getSelectedMethodRules()
+    /**
+     * Get the method rules configured by the user.
+     * <p>
+     * Note: This method should only be called after this dialog has be displayed and submitted successfully. i.e.
+     *       it should only be called after invoking {@link #showAndGet()} returns {@code true}. Failing to do so will
+     *       result in this method returning un-initialized data.
+     *
+     * @return Mapping of {@link PsiMethod}s to test in the source file to {@link ParameterRule}s which indicate how
+     *         each of the method's parameters should be tested. Never {@code null} but may be empty. The list of
+     *         {@link ParameterRule}s for each method is also guaranteed to contain exactly the number of parameters
+     *         defined for the method in the correct order.
+     */
+    @NotNull
+    ImmutableMap<PsiMethod, ImmutableList<ParameterRule>> getSelectedMethodRules()
     {
         ImmutableMap.Builder<PsiMethod, ImmutableList<ParameterRule>> builder = ImmutableMap.builder();
         availableMethods.entrySet().stream().filter(entry -> entry.getKey().isSelected()).forEach(entry ->
@@ -249,40 +276,102 @@ public class GetTestMethodsDialog extends DialogWrapper
         return builder.build();
     }
 
-    private ImmutableList<ParameterRule> getParameterRules(@NotNull PsiMethod method)
+    /**
+     * Build the list of default {@link ParameterRule}s for the provided method.
+     *
+     * @param method {@link PsiMethod} for which to build the default parameter rules. Cannot be {@code null}.
+     * @return An {@link ImmutableList} of default {@link ParameterRule}s for {@code method}. Never {@code null}, and
+     *         will always contain exactly the number of parameters defined for the method in the correct order.
+     *
+     * @throws NullPointerException if {@code method} is {@code null}.
+     */
+    @NotNull
+    private ImmutableList<ParameterRule> buildDefaultParameterRules(@NotNull PsiMethod method)
     {
+        Preconditions.checkNotNull(method, "method cannot be null.");
+
         ImmutableList.Builder<ParameterRule> rulesBuilder = ImmutableList.builder();
         for (PsiParameter parameter : method.getParameterList().getParameters())
         {
-            if (parameter.getType() instanceof PsiPrimitiveType)
+            PsiType type = parameter.getType();
+            String name = parameter.getName();
+            if (name != null)
             {
-                if (parameter.getType().equals(PsiType.INT))
+                if (type instanceof PsiPrimitiveType)
                 {
-                    rulesBuilder.add(new IntegerParameterRule(parameter.getName()));
+                    // TODO: Make this handle more primitives!
+                    if (type.equals(PsiType.INT))
+                    {
+                        rulesBuilder.add(new IntegerParameterRule(name));
+                    }
+                    else
+                    {
+                        throw new IllegalStateException("This functionality cannot currently be used on a class " +
+                            "containing an unsupported parameter type: " + type.getPresentableText());
+                    }
                 }
-                // TODO: Make this handle more primitives!
-            }
-            else if (parameter.getType().getCanonicalText().equals("java.lang.String"))
-            {
-                rulesBuilder.add(new StringParameterRule(parameter.getType(), parameter.getName()));
+                else if (type.getCanonicalText().equals("java.lang.String"))
+                {
+                    rulesBuilder.add(new StringParameterRule(type, name));
+                }
+                else
+                {
+                    // TODO: What if it's an array? or something else?
+                    rulesBuilder.add(new ObjectParameterRule(type, name));
+                }
             }
             else
             {
-                // TODO: What if it's an array?
-                rulesBuilder.add(new ObjectParameterRule(parameter.getType(), parameter.getName()));
+                throw new IllegalStateException("Unexpected error retrieving method parameter information. " +
+                    "Parameter of type " + type.getPresentableText() + " on method " + method.getName() +
+                    " has a null name.");
             }
         }
 
         return rulesBuilder.build();
     }
 
-    private String getMethodSignature(@NotNull PsiMethod method)
+    /**
+     * Get the presentable method signature for the provided {@link PsiMethod}.
+     * <p>
+     * The format returned for constructors is (depending on whether there are any parameters):
+     *      Constructor: (Type1 name1, Type2 name2, ...)
+     *      or
+     *      Constructor: (no parameters)
+     *
+     * The format returned for methods is (depending on whether there are any parameters):
+     *      returnType methodName: (Type1 name1, Type2 name2, ...)
+     *      or
+     *      returnType methodName: (no parameters)
+     *
+     * @param method Method for which to get the presentable method signature. Cannot be {@code null}.
+     * @return The presentable method signature for {@code method}. Never {@code null}.
+     *
+     * @throws NullPointerException if {@code method} is {@code null}.
+     */
+    @NotNull
+    private String getPresentableMethodSignature(@NotNull PsiMethod method)
     {
         Preconditions.checkNotNull(method, "method cannot be null.");
 
-        StringBuilder signatureBuilder = new StringBuilder(
-            method.isConstructor() ? "Constructor: (" :
-                method.getReturnType().getPresentableText() + " " + method.getName() + ": (");
+        StringBuilder signatureBuilder;
+        if (method.isConstructor())
+        {
+            signatureBuilder = new StringBuilder("Constructor: (");
+        }
+        else
+        {
+            PsiType returnType = method.getReturnType();
+            if (returnType != null)
+            {
+                signatureBuilder = new StringBuilder(returnType.getPresentableText() + " " + method.getName() + ": (");
+            }
+            else
+            {
+                throw new IllegalStateException("Unexpected error retrieving method descriptions. Non-constructor " +
+                    "Method " + method.getName() + " has null return type.");
+            }
+        }
 
         PsiParameter[] parameters = method.getParameterList().getParameters();
         if (parameters.length > 0)
@@ -294,7 +383,9 @@ public class GetTestMethodsDialog extends DialogWrapper
                 {
                     signatureBuilder.append(", ");
                 }
-                signatureBuilder.append(parameter.getType().getPresentableText() + " " + parameter.getName());
+                signatureBuilder.append(parameter.getType().getPresentableText());
+                signatureBuilder.append(" ");
+                signatureBuilder.append(parameter.getName());
                 first = false;
             }
         }
